@@ -1,11 +1,21 @@
 const json5 = require('json5')
 const plist = require('plist')
 const fs = require('fs')
+const path = require('path')
 
-function convert(vscTheme) {
+function convert(vscTheme, inputFilePath) {
+    // Extract theme name from vscTheme.name, or fall back to filename without extension
+    let themeName = vscTheme.name;
+    if (!themeName && inputFilePath) {
+        themeName = path.basename(inputFilePath, path.extname(inputFilePath));
+    }
+    if (!themeName) {
+        themeName = 'Untitled Theme';
+    }
+
     const tmTheme = {
-        name: vscTheme.name,
-        settings: vscTheme.tokenColors
+        name: themeName,
+        settings: vscTheme.tokenColors || []
     }
 
     const defaultSettings = tmTheme.settings.find(setting => !setting.scope);
@@ -28,7 +38,7 @@ function convert(vscTheme) {
        const scope = tmTheme.settings[i].scope
        if (scope) {
            tmTheme.settings[i].scope = scope.toString()
-       } 
+       }
     }
     return tmTheme
 }
@@ -46,5 +56,7 @@ class SettingsMapper {
     }
 }
 
-const vscTheme = json5.parse(fs.readFileSync(process.argv[2], "utf8"))
-fs.writeFileSync(process.argv[3], plist.build(convert(vscTheme)))
+const inputFile = process.argv[2]
+const outputFile = process.argv[3]
+const vscTheme = json5.parse(fs.readFileSync(inputFile, "utf8"))
+fs.writeFileSync(outputFile, plist.build(convert(vscTheme, inputFile)))
